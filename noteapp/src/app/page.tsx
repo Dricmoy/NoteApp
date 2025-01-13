@@ -83,8 +83,18 @@ export default function LandingPage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const handleSearch = () => {
-        console.log("Searching for:", searchQuery);
+        const selectedUniversity = universities.find((university) =>
+            university.name.toLowerCase() === searchQuery.toLowerCase()
+        );
+    
+        if (selectedUniversity) {
+            // If a matching university is found, navigate to its page using its `uid`
+            router.push(`/university/${selectedUniversity.uid}`);
+        } else {
+            console.log("University not found");
+        }
     };
+    
     const [isFocused, setIsFocused] = useState(false);
 
     // Sanity query to fetch universities
