@@ -1,6 +1,5 @@
 'use client';
 import Link from "next/link"
-
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -12,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
+import { ArrowLeftCircleIcon } from "lucide-react";
 
 export default function Signup() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -37,26 +37,37 @@ export default function Signup() {
       }
 
       console.log('Form submitted successfully!');
-      // Optionally, you can handle the response from the server here
     } catch (error) {
       console.error('There was a problem with the form submission:', error);
     }
   };
 
   return (
-    <div className="flex">
-        <Card className="flex items-center justify-center min-h-screen w-[40vw] h-[100vh]">
-          <CardHeader>
-            <CardTitle className="text-xl">Sign Up</CardTitle>
-            <CardDescription>
-              Enter your information to create an account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+    <div className="flex items-center justify-center min-h-screen relative">
+      {/* Back Button */}
+      <div className="absolute top-4 left-4 z-10">
+        <Link href="/">
+          <ArrowLeftCircleIcon 
+            className="text-2xl text-black hover:text-blue-800 transition-all duration-200 ease-in-out"
+          />
+        </Link>
+      </div>
 
-            <div className="grid gap-4">
+      <div className="w-full h-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
+        <div className="flex items-center justify-center py-12">
+          <div className="mx-auto w-full max-w-[350px] space-y-6">
+            {/* Title Section */}
+            <div className="text-center space-y-2">
+              <h1 className="text-3xl font-bold">Sign Up</h1>
+              <p className="text-muted-foreground text-sm">
+                Enter your information to create an account
+              </p>
+            </div>
+
+            {/* Form Section */}
+            <div className="space-y-4">
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2 mt-4">
                     <Label htmlFor="first-name">First name</Label>
                     <Input id="firstName" placeholder="Max" required />
@@ -77,7 +88,7 @@ export default function Signup() {
                 </div>
                 <div className="grid gap-2 mt-4">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" />
+                  <Input id="password" type="password" required />
                 </div>
                 <Button type="submit" className="w-full mt-4">
                   Create an account
@@ -85,16 +96,18 @@ export default function Signup() {
               </form>
             </div>
 
+            {/* Sign In Link Section */}
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
               <Link href="/login" className="underline">
                 Sign in
               </Link>
             </div>
-          </CardContent>
-      </Card>
+          </div>
+        </div>
 
-      <div className="hidden bg-muted lg:block w-[60vw]">
+        {/* Background Image for large screens */}
+        <div className="hidden lg:block w-full lg:w-[60vw] h-screen">
           <Image
             src="/bg.jpg"
             alt="Image"
@@ -102,8 +115,8 @@ export default function Signup() {
             height="1080"
             className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
           />
+        </div>
       </div>
     </div>
-    
-  )
+  );
 }

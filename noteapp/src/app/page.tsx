@@ -5,11 +5,41 @@ import Cookies from 'js-cookie';
 import '../app/globals.css';
 import { Button } from "@/components/ui/button";
 import Image from 'next/image';
-import { Search } from "lucide-react";
+import { ArrowRightCircleIcon, Search } from "lucide-react";
 import { motion } from 'framer-motion'
 import { UserPlusIcon, SearchIcon, ArrowUpIcon, BookmarkIcon, PhoneCallIcon, RefreshCwIcon } from 'lucide-react'
+import {useRouter} from "next/navigation";
+import Link from "next/link";
+import { createClient, SanityClient } from "@sanity/client"; 
+
+const client = createClient({
+    projectId: "qejur137", // Replace with your Sanity project ID
+    dataset: "production", // Replace with your dataset
+    apiVersion: "2023-01-01", // Use the latest API version
+    useCdn: true,
+  });
+
+const proxyUrl = "http://localhost:3001/proxy"; // URL to your proxy server
+
+interface University {
+    name: string;
+    uid: string;
+}
 
 export default function LandingPage() {
+    const [universities, setUniversities] = useState<University[]>([]);
+    const router = useRouter(); // Assuming you're using Next.js for routing
+
+    const handleLogin = () => {
+        // For example, navigate to the login page
+        router.push('/login'); // Adjust this route to wherever your login page is
+      };
+    
+      const handleSignup = () => {
+        // For example, navigate to the signup page
+        router.push('/sign-up'); // Adjust this route to wherever your signup page is
+      };
+    
     const steps = [
         {
           title: 'Create an Account',
@@ -55,64 +85,118 @@ export default function LandingPage() {
     const handleSearch = () => {
         console.log("Searching for:", searchQuery);
     };
+    const [isFocused, setIsFocused] = useState(false);
+
+    // Sanity query to fetch universities
+    const getUniversities = async () => {
+        const query = `*[_type == "university"]{ name, uid }`;
+        try {
+            const response = await fetch(`${proxyUrl}?query=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            // Fallback to empty array if data is not an array
+            setUniversities((data.result) ? data.result : []);
+            console.log("Populated university with the data ", universities);
+        } catch (error) {
+            console.error("Error fetching universities: ", error);
+            setUniversities([]); // Set to empty array on error
+        }
+    };    
+    
+    
+    const handleFocus = () => {
+        setIsFocused(true);
+        getUniversities();
+        console.log('Search input is focused');
+    };
 
   return (
     <div className="min-h-screen bg-cover bg-center bg-fixed bg-gray-100">
-      {/* Hero Section */}
-      <header className="relative min-h-screen bg-black text-center flex flex-col justify-center items-center text-white px-6">
-        <Image
-          src="/logo_light.png"
-          alt="NoteHub Logo"
-          width={150}
-          height={150}
-          className="mb-6"
-        />
-        <h1 className="text-6xl font-extrabold mb-6 transition-all duration-500 transform hover:scale-105">
-          Welcome to NoteHub
-        </h1>
-        <p className="text-2xl text-slate-300 mb-8 opacity-80 transition-all duration-500 hover:opacity-100">
-          Share, Search, and Access Study Materials
-        </p>
-
-        {/* Search Bar */}
-        <div className="w-full max-w-lg mb-12">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for courses, study materials through keywords..."
-              className="w-full p-4 pr-10 pl-4 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+        {/* Hero Section */}
+        <header className="relative min-h-screen bg-black text-center flex flex-col justify-center items-center text-white px-6">
+            <Image
+            src="/logo_light.png"
+            alt="NoteHub Logo"
+            width={150}
+            height={150}
+            className="mb-6"
             />
-            <Search
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 cursor-pointer"
-              aria-label="Search"
-              onClick={handleSearch}
-            />
-          </div>
-                  {/* Auth buttons / Upload Notes Button */}
-        {authToken ? (
-        <div className="auth-buttons text-center mt-10">
-            <Button className="bg-blue-600 text-white px-8 py-3 rounded-full text-base font-medium shadow-md hover:bg-blue-700 active:shadow-lg transition-all duration-200 transform hover:scale-105">
-            Upload New Notes
-            </Button>
-        </div>
-        ) : (
-        <div className="auth-buttons text-center mt-10">
-            <p className="text-white mb-4 text-sm font-medium">
-            Login or Sign Up to view your uploads and favorites!
+            <h1 className="text-6xl font-extrabold mb-6 transition-all duration-500 transform hover:scale-105">
+            Welcome to NoteHub
+            </h1>
+            <p className="text-2xl text-slate-300 mb-8 opacity-80 transition-all duration-500 hover:opacity-100">
+            Share, Search, and Access Study Materials
             </p>
-            <div className="flex justify-center space-x-4">
-            <Button className="bg-gray-800 text-white px-8 py-3 rounded-full text-base font-medium shadow-md hover:bg-gray-900 active:shadow-lg transition-all duration-200 transform hover:scale-105">
-                Login
-            </Button>
-            <Button className="bg-gray-500 text-white px-8 py-3 rounded-full text-base font-medium shadow-md hover:bg-gray-600 active:shadow-lg transition-all duration-200 transform hover:scale-105">
-                Sign Up
-            </Button>
+
+            <div className="w-full max-w-lg mb-12">
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={handleFocus}
+                        onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                        placeholder="Choose/Search for your University"
+                        className="w-full p-4 pr-10 pl-4 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-black"
+                        list="university-list" // Connect the input to the datalist
+                    />
+                    <Search
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-black hover:scale-105 cursor-pointer"
+                        aria-label="Search"
+                        onClick={handleSearch}
+                    />
+                </div>
+                {/* Custom Dropdown for Universities */}
+                {isFocused && universities.length > 0 && (
+                    <div className="">
+                        <ul className="max-h-60 overflow-y-auto">
+                            {universities
+                                .filter((university) =>
+                                    university.name.toLowerCase().includes(searchQuery.toLowerCase()) // Filter based on the search query
+                                )
+                                .map((university) => (
+                                    <li
+                                        key={university.uid}
+                                        className="p-2 w-full bg-white rounded-lg shadow-md z-10 text-black cursor-pointer hover:bg-gray-300"
+                                        onClick={() => setSearchQuery(university.name)} // Select the university name on click
+                                    >
+                                        {university.name}
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
+                )}
             </div>
-        </div>
-        )}
-        </div>
+
+            {/* Auth buttons*/}
+            {authToken ? (
+            <div className="auth-buttons text-center mt-10">
+                <Button className="bg-blue-600 text-white px-8 py-3 rounded-full text-base font-medium shadow-md hover:bg-blue-700 active:shadow-lg transition-all duration-200 transform hover:scale-105">
+                Upload New Notes
+                </Button>
+            </div>
+            ) : (
+            <div className="auth-buttons text-center mt-10">
+                <p className="text-white mb-4 text-sm font-medium">
+                Login or Sign Up to view your uploads and favorites!
+                </p>
+                <div className="flex justify-center space-x-4">
+                    <Button variant="default" className='bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300'
+                        onClick={handleLogin}
+                    >
+                        <Link href="/login">Login</Link>
+                        <ArrowRightCircleIcon className='mx-1 animate-pulse will-change-auto'/>
+                        </Button>
+
+                        <Button variant="default" className='bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300'
+                            onClick={handleSignup}
+                        >
+                        <Link href="/sign-up">Sign-up</Link>
+                        <ArrowRightCircleIcon className='mx-1 animate-pulse will-change-auto'/>
+                    </Button>
+                </div>
+            </div>
+            )}
 
         {/* Scroll Indicator */}
         <div className="absolute bottom-6 text-white cursor-pointer flex flex-col items-center">

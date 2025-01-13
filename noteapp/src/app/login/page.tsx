@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation";
+import { ArrowLeftCircleIcon } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
@@ -42,6 +43,14 @@ export default function Login() {
   
   return (
     <div className = "flex items-center justify-center min-h-screen">
+              {/* Back Button */}
+      <div className="absolute top-4 left-4 z-10">
+        <Link href="/">
+          <ArrowLeftCircleIcon 
+            className="text-2xl text-black hover:text-blue-800 transition-all duration-200 ease-in-out"
+          />
+        </Link>
+      </div>
       <div className="w-full h-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
         <div className="flex items-center justify-center py-12">
           <div className="mx-auto grid w-[350px] gap-6">
