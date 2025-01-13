@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import Nav from '@/components/nav';
 import LoadingScreen from '@/components/Loading';
@@ -15,8 +14,15 @@ const client = createClient({
     useCdn: true,
 });
 
+interface FileData {
+  _id: string;
+  fileName: string;
+  fileUrl: string;
+  thumbnail: string;
+}
+
 interface Course {
-    _id: string; // Sanity document ID
+    _id: string;
     name: string;
     cid: string;
     professorName: string;
@@ -36,13 +42,14 @@ interface Course {
 const builder = imageUrlBuilder(client);
 const urlFor = (source: any) => builder.image(source).url(); // URL builder function
 
-const proxyUrl = "http://localhost:3001/proxy"; // URL to proxy server
-
 const CoursePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [uid, setUid] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [files, setFiles] = useState<FileData[]>([]);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const pathArray = window.location.pathname.split('/');
@@ -65,7 +72,7 @@ const CoursePage: React.FC = () => {
           image
         }`;
 
-        const response = await fetch(`${proxyUrl}?query=${encodeURIComponent(query)}`);
+        const response = await fetch(`https://qejur137.api.sanity.io/v1/data/query/production?query=${encodeURIComponent(query)}`);
         const data = await response.json();
         setCourses(data.result || []);
         setLoading(false);
@@ -79,6 +86,35 @@ const CoursePage: React.FC = () => {
       fetchCourses();
     }
   }, [uid]);
+
+  const fetchFilesForCourse = async (courseCid: string) => {
+    const query = `*[_type == "file" && courseCid == $cid] {
+      _id,
+      fileName,
+      "fileUrl": file.asset->url,
+      "thumbnail": thumbnail.asset->url
+    }`;
+
+    try {
+      const res = await fetch(`https://qejur137.api.sanity.io/v1/data/query/production?query=${encodeURIComponent(query)}&cid=${encodeURIComponent(courseCid)}`);
+      const data = await res.json();
+      setFiles(data.result || []);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    }
+  };
+
+  const handleCardClick = (course: Course) => {
+    setSelectedCourse(course);
+    fetchFilesForCourse(course.cid);  // Fetch files for the selected course
+    setShowModal(true);  // Show the modal
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedCourse(null);
+    setFiles([]);
+  };
 
   const filteredCourses = courses.filter((course) =>
     course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -122,7 +158,7 @@ const CoursePage: React.FC = () => {
               <div className="col-span-3 text-center text-gray-500">No courses found</div>
             ) : (
               filteredCourses.map((course) => (
-                <Link href={`/university/${uid}/course/${course._id}`} key={course._id}>
+                <div key={course._id} onClick={() => handleCardClick(course)}>
                     <Card className="flex flex-col bg-white dark:bg-gray-700 dark:hover:bg-gray-700 overflow-hidden shadow-md transition-transform transform hover:scale-105 w-full rounded-md">
                         {/* Course Image */}
                         <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
@@ -146,12 +182,43 @@ const CoursePage: React.FC = () => {
                         </div>
                         </CardContent>
                     </Card>
-                </Link>
+                </div>
               ))
             )}
           </div>
         </div>
       </div>
+
+      {/* Modal for showing files */}
+      {showModal && selectedCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg max-w-lg w-full space-y-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Files for {selectedCourse.name}
+            </h2>
+            <div className="space-y-4">
+              {files.length === 0 ? (
+                <div>No files found for this course.</div>
+              ) : (
+                files.map((file) => (
+                  <div key={file._id} className="flex items-center space-x-4">
+                    <img src={file.thumbnail} alt={file.fileName} className="w-16 h-16 object-cover rounded-md" />
+                    <a href={file.fileUrl} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                      {file.fileName}
+                    </a>
+                  </div>
+                ))
+              )}
+            </div>
+            <button
+              onClick={closeModal}
+              className="mt-4 w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

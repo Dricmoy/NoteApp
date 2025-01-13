@@ -102,7 +102,8 @@ export default function LandingPage() {
     const getUniversities = async () => {
         const query = `*[_type == "university"]{ name, _id }`;
         try {
-            const response = await fetch(`${proxyUrl}?query=${encodeURIComponent(query)}`);
+            //const response = await fetch(`${proxyUrl}?query=${encodeURIComponent(query)}`);
+            const response = await fetch(`https://qejur137.api.sanity.io/v1/data/query/production?query=${encodeURIComponent(query)}`);
             const data = await response.json();
             
             // Fallback to empty array if data is not an array
