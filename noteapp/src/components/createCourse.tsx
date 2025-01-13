@@ -2,10 +2,21 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { Button } from './ui/button';
+import { createClient } from '@sanity/client'; // Import the Sanity client
+
+const proxyUrl = "http://localhost:3001/proxy"; // URL to proxy server
 
 interface CreateCourseProps {
   uid: string;
 }
+
+const client = createClient({
+    projectId: "qejur137", // Replace with your Sanity project ID
+    dataset: "production", // Replace with your dataset
+    useCdn: false, // Set to false for write access
+    token: "skzEbD9dL6HYar3reKDPbr7e62Igz32oEgVjx7cworXDrfTDFDxozXlHXWxXfzsQ0BCRuo0K7IenUSmxTURC2SXq65pkaeYX3J2enGb6znw5Zn69PShCJ06poYFDHSqQ0Fn3kxaVmiG10Evb76mGoqQrzKz9JDth3t6F5CbM1NlsI7i5vORO"
+, // Optional: use if you need authentication
+});
 
 const CreateCourse: React.FC<CreateCourseProps> = ({ uid }) => {
   const [courseName, setCourseName] = useState('');
@@ -16,32 +27,37 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ uid }) => {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
+  // Helper to generate a unique Course ID
+  const generateCid = () => {
+    const timestamp = Date.now().toString(36); // Unique timestamp-based ID
+    const sanitizedCourseName = courseName.replace(/\s+/g, '-').toLowerCase(); // URL-safe course name
+    return `${sanitizedCourseName}-${semester}-${year}-${timestamp}`;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    try {
-      const response = await fetch('https://pdfstoragefunctionapp.azurewebsites.net/api/createCourse?code=kahFRRqGm546CL3_jg_oZN_gVIqZlUg_8SWj7XGBRCouAzFuoagPug%3D%3D', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          uid: uid,
-          courseName: courseName,
-          professorName: professorName,
-          semester: semester,
-          year: year,
-        }),
-      });
+    const cid = generateCid(); // Generate the cid
 
-      if (response.ok) {
-        const data = await response.json();
-        router.push(`/university/${uid}/course/${data.cid}`);
-      } else {
-        console.error('Failed to create course:', response.statusText);
-      }
+    const newCourse = {
+      _type: 'course',
+      name: courseName,
+      cid, // Add generated cid
+      professorName,
+      semester,
+      year,
+      university: { _ref: uid, _type: 'reference' },
+    };
+
+    try {
+      const createdCourse = await client.create(newCourse); // Create the course document directly
+      console.log('Created Course ID:', createdCourse._id); // Log for debugging
+
+      // Navigate to the course detail page after creation
+      router.push(`/university/${uid}/course/${createdCourse._id}`);
     } catch (error) {
-      console.error(error);
+      console.error('Failed to create course:', error);
+      setMessage('Error: Could not create course. Please try again.');
     }
   };
 
@@ -114,82 +130,82 @@ const CreateCourse: React.FC<CreateCourseProps> = ({ uid }) => {
                 />
               </div>
               <div className="mb-5 relative">
-        <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-2">
-            Semester:
-        </label>
-        <div className="relative">
-            <select
-            id="semester"
-            value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-            required
-            className="block w-full rounded-lg p-3 border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
-            >
-            <option value="" disabled>
-                Select Semester
-            </option>
-            <option value="fall">Fall</option>
-            <option value="winter">Winter</option>
-            <option value="spring">Spring</option>
-            <option value="summer">Summer</option>
-            </select>
-            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-                />
-            </svg>
-            </span>
-        </div>
-        </div>
-        <div className="mb-5 relative">
-        <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
-            Year:
-        </label>
-        <div className="relative">
-            <select
-            id="year"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            required
-            className="block w-full rounded-lg p-3 border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
-            >
-            <option value="" disabled>
-                Select Year
-            </option>
-            {getLastTwentyYears().map((yearOption) => (
-                <option key={yearOption} value={yearOption}>
-                {yearOption}
-                </option>
-            ))}
-            </select>
-            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-                />
-            </svg>
-            </span>
-        </div>
-        </div>
+                <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-2">
+                  Semester:
+                </label>
+                <div className="relative">
+                  <select
+                    id="semester"
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    required
+                    className="block w-full rounded-lg p-3 border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
+                  >
+                    <option value="" disabled>
+                      Select Semester
+                    </option>
+                    <option value="fall">Fall</option>
+                    <option value="winter">Winter</option>
+                    <option value="spring">Spring</option>
+                    <option value="summer">Summer</option>
+                  </select>
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+              <div className="mb-5 relative">
+                <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
+                  Year:
+                </label>
+                <div className="relative">
+                  <select
+                    id="year"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    required
+                    className="block w-full rounded-lg p-3 border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
+                  >
+                    <option value="" disabled>
+                      Select Year
+                    </option>
+                    {getLastTwentyYears().map((yearOption) => (
+                      <option key={yearOption} value={yearOption}>
+                        {yearOption}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </div>
 
               <Button
                 type="submit"

@@ -3,26 +3,46 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import Nav from '@/components/nav';
-import CreateCourse from '@/components/createCourse';
-import FeatureSection from '@/components/landing_featured';
 import LoadingScreen from '@/components/Loading';
-import { SanityClient } from '@sanity/client'; // Add your sanity client import
+import { StarIcon } from 'lucide-react';
+import imageUrlBuilder from '@sanity/image-url'; // Import the image URL builder
+import { createClient } from '@sanity/client'; // Ensure sanityClient is set up
+
+const client = createClient({
+    projectId: "qejur137", // Replace with your Sanity project ID
+    dataset: "production", // Replace with your dataset
+    apiVersion: "2023-01-01", // Use the latest API version
+    useCdn: true,
+});
 
 interface Course {
-  _id: string; // Sanity document ID
-  courseName: string;
-  instructor: string;
-  semester: string;
-  department: string;
-  year: number;
+    _id: string; // Sanity document ID
+    name: string;
+    cid: string;
+    professorName: string;
+    semester: string;
+    year: string;
+    university: {
+        name: string;
+    };
+    image: {
+        asset: {
+            _ref: string; // Asset reference (e.g., "image-abc123")
+        };
+    };
 }
 
-const proxyUrl = "http://localhost:3001/proxy"; // URL to your proxy server
+// Sanity image URL builder function
+const builder = imageUrlBuilder(client);
+const urlFor = (source: any) => builder.image(source).url(); // URL builder function
+
+const proxyUrl = "http://localhost:3001/proxy"; // URL to proxy server
 
 const CoursePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [uid, setUid] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const pathArray = window.location.pathname.split('/');
@@ -34,20 +54,20 @@ const CoursePage: React.FC = () => {
     const fetchCourses = async () => {
       setLoading(true);
       try {
-        // GROQ query to fetch courses based on the university ID
-        const query = `
-          *[_type == "course" && university._ref == "${uid}"] {
-            _id,
-            courseName,
-            instructor,
-            semester,
-            department,
-            year
-          }
-        `;
+        const query = `*[_type == "course" && university._ref == "${uid}"] {
+          _id,
+          name,
+          cid,
+          professorName,
+          semester,
+          year,
+          university->{name},
+          image
+        }`;
+
         const response = await fetch(`${proxyUrl}?query=${encodeURIComponent(query)}`);
         const data = await response.json();
-        setClasses(data.result);
+        setCourses(data.result || []);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching courses:', error);
@@ -60,69 +80,77 @@ const CoursePage: React.FC = () => {
     }
   }, [uid]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('');
-
-  const placeholderDescription = 'This is a placeholder description for the course.';
-  const placeholderSemester = 'Select a Semester';
-  const placeholderDepartment = 'Select a Department';
+  const filteredCourses = courses.filter((course) =>
+    course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.professorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.semester.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return <LoadingScreen />;
   }
 
-  const filteredClasses = classes.filter((course) =>
-    course.courseName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (selectedSemester ? course.semester.includes(selectedSemester) : true) &&
-    (selectedDepartment ? course.department.includes(selectedDepartment) : true)
-  );
-
   return (
     <>
-      <Nav page_name='university' />
-      <div className="p-4 min-h-screen bg-white">
-        {/* Centered search bar */}
-        <div className="flex justify-center items-center mb-4">
-          <input
-            type="text"
-            placeholder="Search courses..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-lg p-3 border-2 border-gray-300 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      <Nav page_name="university" />
+      <div className="p-6 min-h-screen bg-gray-50">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-semibold text-gray-900 dark:text-white">
+            {courses[0]?.university?.name}
+          </h1>
+          <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+            Explore courses at {courses[0]?.university?.name} below.
+          </p>
         </div>
 
-        <div className="mb-4 flex justify-between items-center">
-          <div className="custom-select flex items-center">
-            <select 
-              value={selectedSemester} 
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="p-2 border-1 border-gray-300 shadow-lg focus:outline-double focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">{placeholderSemester}</option>
-              <option value="Fall">Fall</option>
-              <option value="Winter">Winter</option>
-              <option value="Spring">Spring</option>
-              <option value="Summer">Summer</option>
-            </select>
+        <div className="max-w-4xl mx-auto mb-8">
+          {/* Search Bar */}
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="Search by course name, professor, or semester..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-4 text-xl border-2 border-gray-300 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Courses Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.length === 0 ? (
+              <div className="col-span-3 text-center text-gray-500">No courses found</div>
+            ) : (
+              filteredCourses.map((course) => (
+                <Link href={`/university/${uid}/course/${course._id}`} key={course._id}>
+                    <Card className="flex flex-col bg-white dark:bg-gray-700 dark:hover:bg-gray-700 overflow-hidden shadow-md transition-transform transform hover:scale-105 w-full rounded-md">
+                        {/* Course Image */}
+                        <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
+                            <img
+                            src={course.image ? urlFor(course.image) : '/placeholder.jpg'} // Fallback image
+                            alt={course.name}
+                            className="object-cover w-full h-full"  // Ensure image fills the container
+                            />
+                        </div>
+                        <CardContent className="flex-1 p-4 flex flex-col space-y-4">
+                        {/* Course Info */}
+                        <div className="text-lg font-medium text-gray-900 dark:text-white">{course.name}</div>
+                        <div className="text-gray-600 dark:text-gray-400">
+                            {course.professorName} - {course.semester} {course.year}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-300">{course.university.name}</div>
+
+                        {/* Favorite Icon */}
+                        <div className="flex justify-end mt-auto">
+                            <StarIcon className="h-6 w-6 text-yellow-300 cursor-pointer hover:text-yellow-600" />
+                        </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+              ))
+            )}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClasses.map((course, index) => (
-            <Link href={`/university/${uid}/course/${course._id}`} key={index}>
-              <Card className="flex flex-col items-start bg-white hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 overflow-hidden shadow-md transition-transform transform hover:scale-105 w-full rounded-md">
-                <CardContent className="flex-1 flex flex-col p-4">
-                  <div className="text-lg font-medium mb-2 text-gray-900 dark:text-white">{course.courseName}</div>
-                  <div className="text-gray-600 dark:text-gray-400">{placeholderDescription}</div>
-                  <div className="text-xs mt-auto text-gray-500 dark:text-gray-300">{course.semester} - {course.department}</div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-        <CreateCourse uid={uid} />
       </div>
     </>
   );

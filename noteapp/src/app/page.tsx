@@ -23,7 +23,7 @@ const proxyUrl = "http://localhost:3001/proxy"; // URL to your proxy server
 
 interface University {
     name: string;
-    uid: string;
+    _id: string;
 }
 
 export default function LandingPage() {
@@ -89,7 +89,7 @@ export default function LandingPage() {
     
         if (selectedUniversity) {
             // If a matching university is found, navigate to its page using its `uid`
-            router.push(`/university/${selectedUniversity.uid}`);
+            router.push(`/university/${selectedUniversity._id}`);
         } else {
             console.log("University not found");
         }
@@ -99,7 +99,7 @@ export default function LandingPage() {
 
     // Sanity query to fetch universities
     const getUniversities = async () => {
-        const query = `*[_type == "university"]{ name, uid }`;
+        const query = `*[_type == "university"]{ name, _id }`;
         try {
             const response = await fetch(`${proxyUrl}?query=${encodeURIComponent(query)}`);
             const data = await response.json();
@@ -166,7 +166,7 @@ export default function LandingPage() {
                                 )
                                 .map((university) => (
                                     <li
-                                        key={university.uid}
+                                        key={university._id}
                                         className="p-2 w-full bg-white rounded-lg shadow-md z-10 text-black cursor-pointer hover:bg-gray-300"
                                         onClick={() => setSearchQuery(university.name)} // Select the university name on click
                                     >
