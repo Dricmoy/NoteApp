@@ -11,6 +11,7 @@ import { UserPlusIcon, SearchIcon, ArrowUpIcon, BookmarkIcon, PhoneCallIcon, Ref
 import {useRouter} from "next/navigation";
 import Link from "next/link";
 import { createClient, SanityClient } from "@sanity/client"; 
+import Nav from "@/components/nav";
 
 const client = createClient({
     projectId: "qejur137", // Replace with your Sanity project ID
@@ -177,36 +178,6 @@ export default function LandingPage() {
                     </div>
                 )}
             </div>
-
-            {/* Auth buttons*/}
-            {authToken ? (
-            <div className="auth-buttons text-center mt-10">
-                <Button className="bg-blue-600 text-white px-8 py-3 rounded-full text-base font-medium shadow-md hover:bg-blue-700 active:shadow-lg transition-all duration-200 transform hover:scale-105">
-                Upload New Notes
-                </Button>
-            </div>
-            ) : (
-            <div className="auth-buttons text-center mt-10">
-                <p className="text-white mb-4 text-sm font-medium">
-                Login or Sign Up to view your uploads and favorites!
-                </p>
-                <div className="flex justify-center space-x-4">
-                    <Button variant="default" className='bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300'
-                        onClick={handleLogin}
-                    >
-                        <Link href="/login">Login</Link>
-                        <ArrowRightCircleIcon className='mx-1 animate-pulse will-change-auto'/>
-                        </Button>
-
-                        <Button variant="default" className='bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300'
-                            onClick={handleSignup}
-                        >
-                        <Link href="/sign-up">Sign-up</Link>
-                        <ArrowRightCircleIcon className='mx-1 animate-pulse will-change-auto'/>
-                    </Button>
-                </div>
-            </div>
-            )}
 
         {/* Scroll Indicator */}
         <div className="absolute bottom-6 text-white cursor-pointer flex flex-col items-center">
